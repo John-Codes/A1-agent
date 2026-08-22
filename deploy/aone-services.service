@@ -1,0 +1,12 @@
+[Unit]
+Description=Start AOne containers after Tailscale
+After=docker.service tailscaled.service
+
+[Service]
+Type=oneshot
+Environment=TAILSCALE_IP=100.91.34.26
+ExecStart=/home/john/A1/deploy/start_after_tailscale.sh
+RemainAfterExit=yes
+
+[Install]
+WantedBy=default.target

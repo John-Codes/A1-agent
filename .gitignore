@@ -1,0 +1,22 @@
+.env
+.env.*
+!.env.sample
+.venv/
+__pycache__/
+*.py[cod]
+*.log
+.lancedb/
+.browseruse/
+.browser-use/
+context/LIFE_LOG.xml
+.DS_Store
+
+# Local environment and network secrets
+.env
+.env.*
+*.env
+!.env.example
+!.env.sample
+!.env.template
+.tailscale
+.tailscale.*

@@ -1,0 +1,10 @@
+.venv
+.lancedb
+.browser-use
+.browseruse
+.git
+__pycache__
+*.pyc
+gateway.log
+.env
+voice_models
