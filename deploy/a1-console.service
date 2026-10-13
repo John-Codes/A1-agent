@@ -1,0 +1,15 @@
+[Unit]
+Description=A1 attachable console
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+Type=simple
+WorkingDirectory=%h/A1-agent
+ExecStart=%h/A1-agent/deploy/start_a1_tmux.sh --watch
+Restart=always
+RestartSec=5
+KillMode=process
+
+[Install]
+WantedBy=default.target
