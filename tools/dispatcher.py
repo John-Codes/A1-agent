@@ -9,13 +9,14 @@ from rag_sync import run_rag_sync
 from tools.agentmail import run_agentmail
 from tools.browser_use_tool import run_browser_use
 from tools.chat_history import run_chat_history_api
-from tools.log import log_exception, log_tool_event
+from tools.log import brief_error, log_exception, log_tool_event
 from tools.life_idea_log import run_life_idea_log
 from tools.llm_route_config import run_llm_route_config
 from tools.shell import run_shell
 from tools.trello_clone import run_trello_clone
 from tools.trello_clone_agent_friendly_xml import run_trello_clone_agent_friendly_xml
 from tools.web import run_web_search
+from tools.seo_registry import run_seo_registry
 
 TOOL_RE = re.compile(
     r"<tool\s+name=[\"'](?P<name>[^\"']+)[\"']\s*>(?P<body>.*?)</tool>",
@@ -39,6 +40,8 @@ TOOL_HANDLERS = {
     "shell": run_shell,
     "trello_clone": run_trello_clone,
     "trello_clone_agent_friendly_xml": run_trello_clone_agent_friendly_xml,
+    "cdl_keywords": lambda body: run_seo_registry(body, "cdl_keywords"),
+    "google_seo_rules": lambda body: run_seo_registry(body, "google_seo_rules"),
 }
 
 
@@ -63,8 +66,15 @@ def tool_names():
 def dispatch_tool_call(call):
     from task_runtime.policy import enforce
     name = call["name"]
-    enforce(name)
     body = call["body"]
+    if name in {"cdl_keywords", "google_seo_rules"}:
+        import json
+        action = json.loads(body or "{}").get("action", "read")
+        if action not in {"read", "list"}:
+            from store import store
+            if store.get("mode") == "plan":
+                raise PermissionError(f"Plan mode blocks registry mutation: {name}")
+    enforce(name)
     log_tool_event(name, "start", body)
     if name == "memory_append":
         MEMORY_PATH.parent.mkdir(parents=True, exist_ok=True)
@@ -86,11 +96,12 @@ def _safe_tool(name, func, body):
     try:
         return _logged_result(name, func(body))
     except Exception as exc:
-        result = f"{name} error: {exc}"
         log_exception(name, exc)
-        return result
+        return brief_error(name, exc)
 
 
 def _logged_result(name, result):
     log_tool_event(name, "done", result)
+    if re.search(r'<ok>\s*false\s*</ok>|"ok"\s*:\s*false', str(result)):
+        return brief_error(name, "service unavailable" if "connection_error" in str(result) else "operation failed")
     return result
