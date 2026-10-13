@@ -1,4 +1,5 @@
 import re
+from task_runtime.read_file import read_project_file
 
 from config import MEMORY_PATH
 from conversation_history import run_conversation_history
@@ -22,6 +23,7 @@ TOOL_RE = re.compile(
 )
 
 TOOL_HANDLERS = {
+    "project_read": read_project_file,
     "memory_store": memory_store,
     "memory_search": memory_search,
     "memory_ingest_path": memory_ingest_path,
@@ -59,7 +61,9 @@ def tool_names():
 
 
 def dispatch_tool_call(call):
+    from task_runtime.policy import enforce
     name = call["name"]
+    enforce(name)
     body = call["body"]
     log_tool_event(name, "start", body)
     if name == "memory_append":

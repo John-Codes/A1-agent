@@ -7,7 +7,10 @@ from api_models import SearchBody, TextBody, ToolBody
 from commands import run as run_command
 from tools import tool_names
 
-app = FastAPI(title="AOne Hermes ADHD API")
+from heartbeat.api import lifespan, router as heartbeat_router
+
+app = FastAPI(title="AOne Hermes ADHD API", lifespan=lifespan)
+app.include_router(heartbeat_router)
 
 _default_origins = [
     "http://127.0.0.1:3000",

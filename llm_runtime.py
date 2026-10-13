@@ -13,10 +13,16 @@ def all_routes():
 
 def active_routes(shared):
     active = _active_route(shared)
+    from heartbeat.settings import MODEL, PROVIDER
+    reserved = lambda item: (item["provider"], item["model"]) == (PROVIDER, MODEL)
+    if active and active.get("label") == "heartbeat" and shared.get("active_llm_strict"):
+        return [active]
+    primary = active or default_route()
+    if reserved(primary):
+        raise ValueError("This model is reserved for heartbeat; select a different main model.")
     if active and shared.get("active_llm_strict"):
         return [active]
-    routes = [active] if active else [default_route()]
-    return _dedupe(routes + fallback_routes())
+    return _dedupe([primary] + [r for r in fallback_routes() if not reserved(r)])
 
 
 def set_active(shared, provider, model, api_base="", override=True, strict=False, label=None):
@@ -46,6 +52,7 @@ def remember_active(shared, result):
 
 
 def status_text(shared):
+    from heartbeat.settings import MODEL, PROVIDER
     has_active = bool(shared.get("active_llm_provider") and shared.get("active_llm_model"))
     provider = shared.get("active_llm_provider") if has_active else DEFAULT_LLM_PROVIDER
     model = shared.get("active_llm_model") if has_active else DEFAULT_LLM_MODEL
@@ -54,6 +61,7 @@ def status_text(shared):
         f"backend: {'litellm' if LITELLM_ENABLED else 'ollama-direct'}",
         f"default: {DEFAULT_LLM_PROVIDER}/{DEFAULT_LLM_MODEL}",
     ]
+    lines.append(f"heartbeat (reserved, excluded from main fallbacks): {PROVIDER}/{MODEL}")
     for item in fallback_routes():
         lines.append(f"{item['label']}: {item['provider']}/{item['model']}")
     lines.extend([f"active_provider: {provider}", f"active_model: {model}"])

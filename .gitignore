@@ -20,3 +20,11 @@ context/LIFE_LOG.xml
 !.env.template
 .tailscale
 .tailscale.*
+
+.a1-tasks.json
+.a1-tasks.tmp
+.a1-tasks.lock
+
+.a1-heartbeat.json
+.a1-heartbeat.tmp
+.a1-heartbeat.lock
