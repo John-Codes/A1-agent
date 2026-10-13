@@ -11,10 +11,11 @@ if ! command -v tmux >/dev/null 2>&1; then
   exit 1
 fi
 if tmux has-session -t "$SESSION" 2>/dev/null; then
-  exit 0
+  :
+else
+  tmux new-session -d -s "$SESSION" -n console \
+    "cd '$ROOT_DIR' && exec '$PYTHON' main.py"
 fi
-tmux new-session -d -s "$SESSION" -n console \
-  "cd '$ROOT_DIR' && exec '$PYTHON' main.py"
 
 if [[ "${1:-}" == "--watch" ]]; then
   trap 'tmux kill-session -t "$SESSION" 2>/dev/null || true' TERM INT EXIT
