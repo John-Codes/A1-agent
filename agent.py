@@ -25,11 +25,8 @@ def message(text, chat_history_session_id="", user_message="", image_data=""):
 
 
 def tick():
-    with _lock:
-        store["trigger"] = "tick"
-        store["pending_input"] = None
-        _llm.run(store)
-        return _result()
+    from heartbeat.service import service
+    return service.tick()
 
 
 def tool(name, body=""):

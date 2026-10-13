@@ -129,3 +129,104 @@ Thor runs AOne in Docker without changing host CUDA, JetPack, or OS packages:
 ./deploy/install_user_service.sh
 curl http://100.91.34.26:8001/health
 ```
+
+
+## Plan and Execute in the Terminal
+
+From this project directory, run `./run.sh`, then:
+
+```text
+/plan Investigate why the browser tool fails and propose a fix
+/status
+/execute
+```
+
+`/plan <goal>` creates a saved plan with instructions, dependencies, and an
+observable completion check for each task. Review it before `/execute`.
+A new successful `/plan <goal>` replaces the previous queue. `/plan` without a
+goal selects planning without replacing it. After using task commands, ordinary
+messages create plans; existing slash commands remain available.
+
+Planning tools are enforced in the dispatcher: only `web_search`, `memory_search`,
+and `project_read` are allowed. `project_read` accepts a relative project text
+file path, excludes hidden paths and paths outside the project, and returns at
+most 16,000 characters. Planning still writes its own local state and diagnostic
+logs. Shell and browser tools are excluded from planning because their existing
+interfaces cannot guarantee read-only behavior.
+
+`/execute` runs ready tasks sequentially and prints model rounds, tool activity,
+results, and task status. Dependencies must finish first. Completion requires the
+worker to report a successful check and evidence; this is model-reported evidence,
+not an independent correctness guarantee. Missing capabilities or input should
+produce a blocked task. Execution retains the existing tools and their restrictions;
+it does not add unrestricted shell access or file editing.
+
+**Press Esc during planning or execution for emergency stop.** Ctrl-C also stops
+active task work. The controller kills its worker process group and discovered
+child processes, including detached browser children. The terminal stays open,
+and execution never resumes automatically. Any escape sequence (including arrow
+keys) stops work deliberately. This feature requires a Linux interactive terminal;
+these task commands are CLI-only and do not change API behavior.
+
+`/status` shows saved work. `/resume` explicitly retries interrupted, blocked, or
+failed tasks within their attempt limit, then continues the queue. Inspect external
+effects before resuming: stopping cannot undo an already accepted remote request.
+The worker is instructed to inspect existing effects before retrying and report
+blocked if they cannot be checked. After a crash, running tasks load as interrupted.
+
+State lives in `.a1-tasks.json` in this directory, with atomic saves and owner-only
+file permissions. A lock prevents two terminal controllers from executing this
+queue at once. State and lock files are ignored by Git. Detailed diagnostics still
+use `gateway.log`; activity shown in the console uses the existing secret redaction.
+
+Limits can be set through environment variables (positive integers):
+
+| Variable | Default | Meaning |
+| --- | --- | --- |
+| `A1_TASK_TOOL_ROUNDS` | 12 | Model/tool rounds per worker |
+| `A1_TASK_TIMEOUT` | 600 | Seconds per execution task |
+| `A1_RUN_TIMEOUT` | 1800 | Seconds per execution run |
+| `A1_TASK_ATTEMPTS` | 3 | Attempts per task, including explicit resumes |
+
+Planning has a 600-second timeout. Three identical tool requests and results stop
+a worker as no progress. Reaching a limit or failure preserves unfinished tasks;
+it never marks them complete. Blocked dependencies do not busy-loop. Create a new
+plan after inspecting a task that has exhausted its attempts.
+
+
+## Dedicated 30-Minute Heartbeat
+
+CLI and API mode now schedule a heartbeat in the background every 1,800 seconds,
+without waiting for terminal input or acquiring the main agent's lock. Each check
+runs in its own cancellable worker with separate model state. The default is
+`ollama/qwen3.5:0.8b` at `OLLAMA_HOST`. It never falls back to a main model. This model
+is reserved: main-agent fallbacks skip it, and selecting it as the main model
+reports a configuration error. Configure a different heartbeat model if needed.
+The Ollama check disables thinking and limits output to 128 tokens with a 4K
+context. A different model on the same server still shares that server's hardware;
+use `HEARTBEAT_LLM_API_BASE` for separate compute when required.
+
+The heartbeat reads local context and the saved task queue and reports pending,
+running, or blocked work. **It does not plan, execute, resume, or modify tasks.**
+The task executor remains controlled by `/plan`, `/execute`, and `/resume`.
+`/status` shows task state plus the latest heartbeat report. `/heartbeat` shows
+heartbeat status alone; `/tick` requests a background check immediately in the CLI.
+
+Esc at the terminal prompt, or during task planning/execution, cancels the local
+heartbeat worker and pauses future checks. `/heartbeat stop` does the same;
+`/heartbeat resume` explicitly enables scheduling again. Exiting the CLI stops the
+scheduler. The pause lasts for the current application process; restarting starts
+scheduling again unless `HEARTBEAT_ENABLED=false`. Requests already accepted by a
+remote model server may continue there after local cancellation.
+
+For API clients: `POST /tick` runs an isolated check, `GET /heartbeat/status` shows
+its status, and `POST /heartbeat/stop` or `/heartbeat/resume` control that API
+process's scheduler. CLI and API processes share a file lock and last-check time
+to avoid simultaneous/duplicate scheduled checks, but their pause controls are
+local to each process. Run one application instance for one emergency-stop scope.
+
+Set `HEARTBEAT_ENABLED`, `HEARTBEAT_INTERVAL_SECONDS`, `HEARTBEAT_LLM_PROVIDER`,
+`HEARTBEAT_LLM_MODEL`, `HEARTBEAT_LLM_API_BASE`, and `HEARTBEAT_TIMEOUT_SECONDS`
+in `.env` as needed, then restart. Latest results are saved atomically in the
+Git-ignored `.a1-heartbeat.json`. No external tools or memory writes run during a
+heartbeat; only its own diagnostic status file is updated.

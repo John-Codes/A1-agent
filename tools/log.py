@@ -1,29 +1,52 @@
 from datetime import datetime
+import os
+import re
 import traceback
 
 from config import LOG_PATH
 
 
 def log_tool_event(name, status, detail):
-    message = f"{_stamp()} | TOOL | {name}:{status} | {_clean(detail)}"
-    print(message)
-    LOG_PATH.parent.mkdir(parents=True, exist_ok=True)
-    with LOG_PATH.open("a", encoding="utf-8") as log_file:
-        log_file.write(f"{message}\n")
+    _write(f"{_stamp()} | TOOL | {name}:{status} | {detail}")
 
 
 def log_exception(name, exc):
     detail = f"{type(exc).__name__}: {exc}\n{traceback.format_exc()}"
     message = f"{_stamp()} | ERROR | {name} | {detail}"
-    print(message)
+    _write(message)
+
+
+def _write(message):
     LOG_PATH.parent.mkdir(parents=True, exist_ok=True)
     with LOG_PATH.open("a", encoding="utf-8") as log_file:
-        log_file.write(f"{message}\n")
+        log_file.write(f"{redact(message)}\n")
 
 
 def _stamp():
     return datetime.now().strftime("%Y-%m-%d %H:%M:%S")
 
 
-def _clean(text):
-    return " ".join(str(text).split())[:500]
+def redact(text):
+    text = str(text)
+    text = re.sub(r"(<(?:api_key|token|password|secret)>).*?(</(?:api_key|token|password|secret)>)", r"\1[REDACTED]\2", text, flags=re.I | re.S)
+    for name, value in os.environ.items():
+        if any(word in name.upper() for word in ("KEY", "TOKEN", "SECRET", "PASSWORD")) and len(value) >= 8:
+            text = text.replace(value, "[REDACTED]")
+    return text
+
+
+def brief_error(name, detail):
+    text = str(detail).lower()
+    if "403" in text or "401" in text:
+        reason = "access denied; check the API key or permissions"
+    elif "connection refused" in text or "connection_error" in text:
+        reason = "service unavailable"
+    elif isinstance(detail, TimeoutError) or "timeout" in text or "timed out" in text:
+        reason = "request timed out"
+    elif "llm failed" in text:
+        reason = "all LLM routes failed"
+    elif "browser task did not complete" in text:
+        reason = "browser task did not complete"
+    else:
+        reason = " ".join((str(detail).splitlines() or ["operation failed"])[0].split())[:160] or "operation failed"
+    return redact(f"{name}: {reason}. Details: gateway.log")
