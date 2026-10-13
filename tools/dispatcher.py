@@ -17,6 +17,7 @@ from tools.trello_clone import run_trello_clone
 from tools.trello_clone_agent_friendly_xml import run_trello_clone_agent_friendly_xml
 from tools.web import run_web_search
 from tools.seo_registry import run_seo_registry
+from seo_mail import poll as poll_seo_mail
 
 TOOL_RE = re.compile(
     r"<tool\s+name=[\"'](?P<name>[^\"']+)[\"']\s*>(?P<body>.*?)</tool>",
@@ -42,6 +43,7 @@ TOOL_HANDLERS = {
     "trello_clone_agent_friendly_xml": run_trello_clone_agent_friendly_xml,
     "cdl_keywords": lambda body: run_seo_registry(body, "cdl_keywords"),
     "google_seo_rules": lambda body: run_seo_registry(body, "google_seo_rules"),
+    "seo_mail_poll": lambda body: poll_seo_mail(),
 }
 
 
