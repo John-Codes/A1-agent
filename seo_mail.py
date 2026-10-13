@@ -1,15 +1,19 @@
 """Deterministic reviewer-mail polling for the CDL SEO workflow."""
 import json
 import re
+from datetime import datetime, timezone
 from pathlib import Path
 
 from config import AGENTMAIL_API_KEY, ROOT_DIR
 from tools.agentmail.client import AgentMailClient
 from tools.seo_registry import run_seo_registry
+from task_runtime.emergency import trigger
 
 INBOX = "gateway-local@agentmail.to"
 ALLOW = {"efexzium@gmail.com", "franyr960@gmail.com"}
+ALERT_TO = "efexzium@gmail.com"
 STATE = ROOT_DIR / ".a1-seo-mail.json"
+DANGEROUS = re.compile(r"(run|execute|open|type|enter|download|install|curl|wget|ssh|sudo|shell|terminal|console|delete|remove|upload|visit|click|http[s]?://|link)", re.I)
 
 
 def poll():
@@ -28,7 +32,18 @@ def poll():
         if sender not in ALLOW:
             continue
         message = client.get_message(INBOX, mid)
-        text = (message.get("extracted_text") or message.get("text") or "").lower()
+        raw = message.get("extracted_text") or message.get("text") or ""
+        text = raw.lower()
+        if DANGEROUS.search(raw):
+            reason = f"Dangerous email instruction from {sender}: {raw[:1200]}"
+            trigger(reason)
+            from heartbeat.service import service
+            service.stop()
+            _alert(client, mid, reason)
+            state[mid] = True
+            client.update_message(INBOX, mid, {"add_labels": ["read"], "remove_labels": ["unread"]})
+            processed += 1
+            continue
         if "keyword" in text or "palabra clave" in text:
             client.reply(INBOX, mid, {"text": _keyword_reply(), "reply_all": True,
                                       "headers": {"X-A1-Workflow": "cdl-seo-review"}})
@@ -37,6 +52,17 @@ def poll():
         processed += 1
     _save(state)
     return {"processed": processed}
+
+
+def _alert(client, message_id, reason):
+    from heartbeat import report
+    status = report.read()
+    log = (ROOT_DIR / "gateway.log").read_text(encoding="utf-8", errors="replace")[-4000:]
+    body = ("A1 EMERGENCY STOP\n\nThe email channel sent a dangerous instruction. "
+            "A1 stopped and will remain blocked until the emergency marker is cleared manually.\n\n"
+            f"Message ID: {message_id}\nReason:\n{reason}\n\nHeartbeat status:\n{status}\n\nRecent log:\n{log}")
+    client.send(INBOX, {"to": [ALERT_TO], "subject": "A1 emergency stop: dangerous email instruction", "text": body,
+                        "headers": {"X-A1-Emergency": "true", "X-A1-Source-Message": message_id}})
 
 
 def _keyword_reply():

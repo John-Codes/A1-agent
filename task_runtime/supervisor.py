@@ -11,7 +11,8 @@ class EmergencyStop(Exception):
 
 
 def supervise(mode, payload, fd, emit=print, timeout=600, target=run, cancel=None):
-    if (cancel is not None and cancel.is_set()) or (fd is not None and escaped(fd)):
+    from task_runtime.emergency import active
+    if active() or (cancel is not None and cancel.is_set()) or (fd is not None and escaped(fd)):
         raise EmergencyStop("Emergency stop requested")
     from store import store
     payload = dict(payload, _runtime={k: v for k, v in store.items()
@@ -25,7 +26,7 @@ def supervise(mode, payload, fd, emit=print, timeout=600, target=run, cancel=Non
     started = time.monotonic()
     try:
         while True:
-            if (cancel is not None and cancel.is_set()) or (fd is not None and escaped(fd)):
+            if active() or (cancel is not None and cancel.is_set()) or (fd is not None and escaped(fd)):
                 raise EmergencyStop("Emergency stop requested")
             if time.monotonic() - started > timeout:
                 raise TimeoutError("Worker runtime limit reached")
