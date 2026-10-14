@@ -5,6 +5,7 @@ import requests
 import urllib3.util.connection as urllib3_connection
 
 from config import LLM_GENERATION_TIMEOUT
+from llm_response import response_text
 
 
 def call_groq(prompt, model):
@@ -18,7 +19,7 @@ def call_groq(prompt, model):
     response = _post_json(_groq_url(), _auth_headers(key), payload)
     if not response.ok:
         raise requests.HTTPError(f"{response.status_code} Groq error: {response.text[:1000]}")
-    return response.json()["choices"][0]["message"].get("content", "")
+    return response_text(response, "Groq")
 
 
 def call_openrouter(prompt, model):
@@ -31,7 +32,7 @@ def call_openrouter(prompt, model):
     response = _post_json(_openrouter_url(), _auth_headers(key), payload)
     if not response.ok:
         raise requests.HTTPError(f"{response.status_code} OpenRouter error: {response.text[:1000]}")
-    return response.json()["choices"][0]["message"].get("content", "")
+    return response_text(response, "OpenRouter")
 
 
 def call_nvidia_nim(prompt, model, api_base):
@@ -48,7 +49,7 @@ def call_nvidia_nim(prompt, model, api_base):
     response = _post_json(f"{api_base.rstrip('/')}/chat/completions", _auth_headers(key), payload)
     if not response.ok:
         raise requests.HTTPError(f"{response.status_code} NVIDIA NIM error: {response.text[:1000]}")
-    return response.json()["choices"][0]["message"].get("content", "")
+    return response_text(response, "NVIDIA NIM")
 
 
 def _post_json(url, headers, payload):

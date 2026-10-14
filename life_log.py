@@ -1,9 +1,10 @@
 from datetime import datetime
 from html import escape
+import os
 
-import requests
-
-from config import LIFE_LOG_PATH, OLLAMA_MODEL, OLLAMA_URL, REQUEST_TIMEOUT
+from config import LIFE_LOG_PATH
+from local_summary import summarize
+from tools.log import log_exception
 
 
 def run_life_log(body):
@@ -33,14 +34,9 @@ def _summarize(raw):
         f"Entry:\n{raw}"
     )
     try:
-        response = requests.post(
-            OLLAMA_URL,
-            json={"model": OLLAMA_MODEL, "prompt": prompt, "stream": False},
-            timeout=REQUEST_TIMEOUT,
-        )
-        response.raise_for_status()
-        summary = response.json().get("response", "").strip()
-    except Exception:
+        summary = summarize(prompt, os.environ.get("LIFE_LOG_OLLAMA_MODEL", "qwen3:4b"))
+    except Exception as exc:
+        log_exception("life_log.summary", exc)
         summary = raw[:240].strip()
     return " ".join(summary.split()) or raw[:240].strip()
 

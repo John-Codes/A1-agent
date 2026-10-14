@@ -63,6 +63,13 @@ class Heartbeat:
         if not self.busy.acquire(blocking=False):
             return {'response': 'Heartbeat already running.', 'error': None}
         try:
+            try:
+                from seo_mail import poll
+                mail_result = poll()
+                if mail_result.get('processed'):
+                    print(f"SEO MAIL | processed {mail_result['processed']} reviewer message(s)", flush=True)
+            except Exception as exc:
+                print(f"SEO MAIL | error: {exc}", flush=True)
             if self.paused:
                 return {'response': 'Heartbeat paused. Use /heartbeat resume.', 'error': None}
             with settings.PATH.with_suffix('.lock').open('w') as lock:
