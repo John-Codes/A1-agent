@@ -1,4 +1,5 @@
 import requests
+import json
 
 from config import AONE_MODEL_CONTEXT, LLM_GENERATION_TIMEOUT, OLLAMA_HOST
 from llm_http_providers import call_groq, call_nvidia_nim, call_openrouter
@@ -23,19 +24,42 @@ def call_ollama_direct(prompt, model, api_base="", image_data=""):
     message = {"role": "user", "content": prompt}
     if image_data:
         message["images"] = [image_data]
+    thinking = model == "qwen3:4b"
     payload = {
         "model": model,
         "messages": [message],
-        "stream": False,
-        "options": {"num_ctx": AONE_MODEL_CONTEXT},
+        "stream": True,
+        "think": thinking,
+        "options": {
+            "num_ctx": min(AONE_MODEL_CONTEXT, 4096),
+            "num_predict": 2048,
+        },
     }
     response = requests.post(
         f"{base}/api/chat",
         json=payload,
         timeout=LLM_GENERATION_TIMEOUT,
+        stream=True,
     )
     response.raise_for_status()
-    return response.json().get("message", {}).get("content", "")
+    return _read_ollama_stream(response, thinking)
+
+
+def _read_ollama_stream(response, thinking):
+    thoughts, content = [], []
+    for raw in response.iter_lines(decode_unicode=True):
+        if not raw:
+            continue
+        item = json.loads(raw)
+        message = item.get("message") or {}
+        if message.get("thinking"):
+            thoughts.append(message["thinking"])
+        if message.get("content"):
+            content.append(message["content"])
+    text = "".join(content).strip()
+    if thinking and thoughts:
+        text = f"<think>{''.join(thoughts).strip()}</think>\n{text}"
+    return text
 
 
 def _call_litellm(prompt, provider, model, api_base):

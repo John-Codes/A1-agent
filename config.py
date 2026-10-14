@@ -68,7 +68,8 @@ os.environ.setdefault("BROWSER_USE_CONFIG_DIR", str(BROWSER_USE_CONFIG_DIR))
 os.environ.setdefault("PLAYWRIGHT_SKIP_BROWSER_DOWNLOAD", "1")
 TRELLO_CLONE_API_URL = os.environ.get(
     "TRELLO_CLONE_API_URL",
-    "https://trello-clone-api-latest-2.onrender.com",
+    # 2026-09-28: latest-2 returns 404; the live deployed app is "latest".
+    "https://trello-clone-api-latest.onrender.com",
 )
 TRELLO_CLONE_TIMEOUT = int(os.environ.get("TRELLO_CLONE_TIMEOUT", "20"))
 TRELLO_CLONE_API_KEY = os.environ.get("TRELLO_CLONE_API_KEY", "")

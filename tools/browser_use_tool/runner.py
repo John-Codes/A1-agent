@@ -3,12 +3,11 @@ import asyncio
 from config import (
     LLM_GENERATION_TIMEOUT,
     BROWSER_USE_CHROMIUM_SANDBOX,
-    BROWSER_USE_OLLAMA_MODEL,
     BROWSER_USE_TIMEOUT,
     BROWSER_USE_CHROMIUM_EXECUTABLE,
-    OLLAMA_HOST,
 )
 from tools.browser_use_tool.schema import parse_browser_request
+from tools.browser_use_tool.logging import configure_logging
 
 SAFETY_NOTE = """
 
@@ -24,16 +23,19 @@ def run_browser_use(body):
 
 
 async def _run(request):
-    from browser_use import Agent, Browser, ChatOllama
+    configure_logging()
+    from browser_use import Agent, Browser
+    from tools.browser_use_tool.model import browser_model
 
     browser = Browser(**_browser_options(request))
     try:
         agent = Agent(
             task=f"{request['task']}\n\n{SAFETY_NOTE}",
             browser=browser,
-            llm=ChatOllama(model=BROWSER_USE_OLLAMA_MODEL, host=OLLAMA_HOST, timeout=LLM_GENERATION_TIMEOUT),
+            llm=browser_model(),
             llm_timeout=LLM_GENERATION_TIMEOUT,
             step_timeout=LLM_GENERATION_TIMEOUT,
+            use_vision=False,
         )
         result = await asyncio.wait_for(
             agent.run(max_steps=request["max_steps"]),
@@ -66,6 +68,10 @@ async def _close_browser(browser):
 
 
 def _stringify_result(result):
+    success = getattr(result, "is_successful", None)
+    if callable(success) and success() is not True:
+        errors = getattr(result, "errors", lambda: [])()
+        raise RuntimeError(f"Browser task did not complete: {errors}")
     final_result = getattr(result, "final_result", None)
     if callable(final_result):
         final = final_result()

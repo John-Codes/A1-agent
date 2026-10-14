@@ -1,6 +1,7 @@
 import requests
 
-from config import CHAT_HISTORY_API_TOKEN, CHAT_HISTORY_API_URL, CHAT_HISTORY_TIMEOUT
+from config import CHAT_HISTORY_API_TOKEN, CHAT_HISTORY_API_URL, CHAT_HISTORY_TIMEOUT, CHAT_HISTORY_WORKSPACE_ID
+from tools.log import log_exception
 
 CLIENT_ID = "A1"
 USER_ID = "local"
@@ -15,11 +16,13 @@ def recent(limit=20):
         res = requests.get(
             _url(f"/sessions/{session_id}/messages"),
             headers=_headers(),
+            params={"workspace_id": CHAT_HISTORY_WORKSPACE_ID},
             timeout=CHAT_HISTORY_TIMEOUT,
         )
         res.raise_for_status()
         return res.json()[-int(limit):]
-    except Exception:
+    except Exception as exc:
+        log_exception("conversation_history.messages", exc)
         return []
 
 def format_recent(limit=20):
@@ -35,13 +38,14 @@ def run_conversation_history(body=""):
 
 
 def _latest_session_id():
-    params = {"client_id": CLIENT_ID, "user_id": USER_ID, "agent_type": AGENT_TYPE}
+    params = {"client_id": CLIENT_ID, "user_id": USER_ID, "agent_type": AGENT_TYPE, "workspace_id": CHAT_HISTORY_WORKSPACE_ID}
     try:
         res = requests.get(_url("/sessions"), params=params, headers=_headers(), timeout=CHAT_HISTORY_TIMEOUT)
         res.raise_for_status()
         sessions = res.json()
         return sessions[0]["id"] if sessions else None
-    except Exception:
+    except Exception as exc:
+        log_exception("conversation_history.sessions", exc)
         return None
 
 

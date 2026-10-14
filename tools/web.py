@@ -1,3 +1,4 @@
+import re
 import requests
 
 from config import TAVILY_API_KEY, TAVILY_SEARCH_URL, WEB_SEARCH_TIMEOUT
@@ -9,7 +10,7 @@ NEWS_WORDS = ("news", "latest", "today", "recent", "breaking", "2026")
 
 
 def run_web_search(query):
-    query = query.strip()
+    query = re.sub(r"</?tool\b[^>]*>", "", query).strip()
     if not query:
         return "No search query provided."
     backends = [_tavily, bing_news, bing_web] if _looks_news(query) else [_tavily, bing_web]
@@ -19,7 +20,7 @@ def run_web_search(query):
         if result.startswith("Backend:"):
             return result
         errors.append(result)
-    return "No useful web results found.\n" + "\n".join(errors)
+    return "No useful web results found. Details: gateway.log"
 
 
 def _try_backend(backend, query):

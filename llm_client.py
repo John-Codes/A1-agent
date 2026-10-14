@@ -4,6 +4,7 @@ from config import LITELLM_ENABLED, LLM_GENERATION_TIMEOUT
 from llm_errors import error_result, ok_result
 from llm_provider_calls import call_ollama_direct, call_provider
 from llm_runtime import active_routes, remember_active
+from tools.log import log_exception, log_tool_event
 
 
 def complete_prompt(prompt, shared):
@@ -21,15 +22,17 @@ def complete_prompt(prompt, shared):
             shared["last_llm_fallback_used"] = route["label"].startswith("fallback_")
             return result
         shared["last_llm_error"] = result
+        log_tool_event("llm", "error", result)
     return attempts[-1] if attempts else error_result("", "", "", RuntimeError("No LLM routes."))
 
 
 def _try_route(prompt, route, image_data=""):
-    ctx = get_context("fork")
+    ctx = get_context("spawn")
     queue = ctx.Queue()
     process = ctx.Process(target=_route_worker, args=(prompt, route, image_data, queue))
     process.start()
-    process.join(LLM_GENERATION_TIMEOUT)
+    timeout = min(LLM_GENERATION_TIMEOUT, 60) if route["provider"] == "ollama" else LLM_GENERATION_TIMEOUT
+    process.join(timeout)
     if process.is_alive():
         process.terminate()
         process.join(2)
@@ -37,7 +40,7 @@ def _try_route(prompt, route, image_data=""):
             route["provider"],
             route["model"],
             route.get("api_base") or "",
-            TimeoutError(f"LLM route exceeded {LLM_GENERATION_TIMEOUT}s"),
+            TimeoutError(f"LLM route exceeded {timeout}s"),
         )
     if queue.empty():
         return error_result(
@@ -60,4 +63,5 @@ def _route_worker(prompt, route, image_data, queue):
             text = call_ollama_direct(prompt, model, api_base, image_data)
         queue.put(ok_result(provider, model, api_base, text))
     except Exception as exc:
+        log_exception(f"llm.{provider}", exc)
         queue.put(error_result(provider, model, api_base, exc))

@@ -93,6 +93,17 @@ Important defaults live in `config.py`:
 - `OLLAMA_EMBED_MODEL`: embedding model, default `embeddinggemma`.
 - `LANCEDB_PATH`: local semantic memory path, default `.lancedb`.
 
+Browser automation has separate settings: `BROWSER_USE_PROVIDER` accepts
+`ollama` or `openrouter`. OpenRouter uses the default OpenRouter route unless
+`BROWSER_USE_MODEL` is set. Ollama uses `BROWSER_USE_OLLAMA_MODEL`.
+Set `BROWSER_USE_CHROMIUM_EXECUTABLE` to an installed Chrome/Chromium binary.
+`LIFE_LOG_OLLAMA_MODEL` and `CHAT_SUMMARY_OLLAMA_MODEL` select local summary models
+independently of the main cloud LLM. Restart the agent after changing `.env`.
+
+Terminal errors are brief. Full tool results, provider failures, browser
+diagnostics, and tracebacks are saved to `gateway.log`, with configured secrets
+redacted. Use `/log` or `tail -n 100 gateway.log` to inspect details.
+
 ## Memory Tools
 
 - `memory_store`: store text, document metadata, or captioned photo metadata.
