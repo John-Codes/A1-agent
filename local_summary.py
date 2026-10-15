@@ -4,6 +4,16 @@ from config import OLLAMA_HOST, REQUEST_TIMEOUT
 
 
 def summarize(prompt, model):
+    try:
+        return _summarize(prompt, model)
+    except Exception as exc:
+        from tools.log import log_exception, report_model_failure
+        log_exception('local_summary', exc)
+        report_model_failure('ollama', model, exc)
+        raise
+
+
+def _summarize(prompt, model):
     response = requests.post(
         f"{OLLAMA_HOST.rstrip('/')}/api/chat",
         json={

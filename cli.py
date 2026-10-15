@@ -8,10 +8,13 @@ from heartbeat.console import read_input
 
 
 def main():
+    from seo.service import service as seo_service
     service.start()
+    seo_service.start()
     try:
         _loop()
     finally:
+        seo_service.close()
         service.close()
 
 
@@ -20,6 +23,8 @@ def _loop():
     print("Type a message, /life_log <entry>, /history, /tools, /search <query>, /tick, /memory, /log, or /quit.")
 
     print("Tasks: /plan <goal>, /execute, /status, /resume. Esc stops active task work.")
+    from seo.service import HELP
+    print(HELP)
     if PATH.exists():
         store["mode"] = "plan"
     while True:

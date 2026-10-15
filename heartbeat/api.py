@@ -8,10 +8,13 @@ router = APIRouter(prefix='/heartbeat')
 
 @asynccontextmanager
 async def lifespan(app):
+    from seo.service import service as seo_service
     service.start()
+    seo_service.start()
     try:
         yield
     finally:
+        seo_service.close()
         service.close()
 
 

@@ -5,6 +5,16 @@ def complete(prompt, shared):
     if settings.PROVIDER != 'ollama':
         from llm_client import complete_prompt
         return complete_prompt(prompt, shared)
+    try:
+        return _ollama_complete(prompt)
+    except Exception as exc:
+        from tools.log import log_exception, report_model_failure
+        log_exception('heartbeat.model', exc)
+        report_model_failure(settings.PROVIDER, settings.MODEL, exc)
+        raise
+
+
+def _ollama_complete(prompt):
     import requests
     response = requests.post(
         settings.API_BASE.rstrip('/') + '/api/chat',
