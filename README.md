@@ -100,9 +100,68 @@ Set `BROWSER_USE_CHROMIUM_EXECUTABLE` to an installed Chrome/Chromium binary.
 `LIFE_LOG_OLLAMA_MODEL` and `CHAT_SUMMARY_OLLAMA_MODEL` select local summary models
 independently of the main cloud LLM. Restart the agent after changing `.env`.
 
-Terminal errors are brief. Full tool results, provider failures, browser
+Every failed model attempt prints its provider/model and reason to the console,
+including failures followed by a successful fallback. Tool failures print
+`Tool <name> failed ... Check log for more info @ <absolute log path>`.
+Full tool results, provider failures, browser
 diagnostics, and tracebacks are saved to `gateway.log`, with configured secrets
 redacted. Use `/log` or `tail -n 100 gateway.log` to inspect details.
+
+## Daily SEO inside A1
+
+This workflow prepares content for **CDLTestReady**. Automatic posting and
+review email are not connected yet; saved drafts are not published articles.
+
+Startup displays the available SEO commands and parameters. `/seo help` shows
+them again. Author defaults to Sergio; change it with `/seo author <name>` or
+the JSON `author` parameter on start/set. Each draft includes author and
+`created_at` (date/time with timezone offset) in Markdown frontmatter.
+
+Start A1 in tmux, then type `/seo start 5` to create up to five English/Spanish
+article pairs per day (ten Markdown files). `/seo set 2` changes the quota;
+`/seo stop` pauses; `/seo status` shows progress. Detach tmux and leave A1 running.
+Restart A1 once after installing this change to load the new console runner.
+Enabled state survives restart; no separate script or service is required.
+Use `/seo title Texas CDL air brakes` to set what this instance writes about. The
+`content_title` is saved in Markdown and included in the writing brief. The tmux
+window shows the campaign, progress, and current article topic while drafting,
+then the generated article title when ready. No console digging required.
+
+The title defines the **content subject**. Set target search phrases separately:
+
+```text
+/seo title Texas CDL air brakes
+/seo keywords Texas air brakes practice test, air brake inspection checklist
+/seo start 2
+```
+
+Explicit keywords replace registry selection, producing one bilingual pair per
+phrase within the requested subject. Add new phrases when exhausted; A1 avoids
+repeating the same subject/phrase. `/seo keywords` clears the override and returns
+to the Markdown keyword registry. Both parameters persist in `DAILY_SEO.md`.
+
+Edit `context/DAILY_SEO.md` for the quota and timezone. Manage keywords in
+`context/CDL_SEO_KEYWORDS.md` directly or use `/cdl_keywords` with JSON:
+
+```text
+/cdl_keywords {"action":"list"}
+/cdl_keywords {"action":"create","state":"TX","topic":"Air brakes study planning","english":"Texas air brakes study plan","spanish":"plan de estudio frenos de aire Texas"}
+/cdl_keywords {"action":"update","id":"KW-002","priority":"P2"}
+/cdl_keywords {"action":"delete","id":"KW-002"}
+```
+
+Direct `/cdl_keywords` commands work from the console in either mode. Model tool
+mutations still require execution mode. `/seo` explicitly controls the schedule.
+Drafts appear under `docs/seo/drafts/YYYY-MM-DD/slot-keyword/`, with `en.md` and
+`es.md`. They need human factual review; generation checks are structural only.
+No automatic publishing or outgoing review email is enabled. Research uses A1's
+web search and writing uses its configured LLM routes.
+
+Progress is saved in `.a1-seo.json`. Each keyword is used once; add new active
+topics when the backlog runs out. Failed/interrupted slots consume quota and
+are not retried automatically. Status and the progress file show failures.
+Quota resets at local midnight; missed days are skipped. Stopping prevents the
+next pair and cancels the current worker. An existing emergency stop blocks work.
 
 ## Memory Tools
 

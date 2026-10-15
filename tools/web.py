@@ -3,7 +3,7 @@ import requests
 
 from config import TAVILY_API_KEY, TAVILY_SEARCH_URL, WEB_SEARCH_TIMEOUT
 from tools.format import format_results, search_item
-from tools.log import log_tool_event
+from tools.log import log_tool_event, report_tool_failure
 from tools.rss import bing_news, bing_web
 
 NEWS_WORDS = ("news", "latest", "today", "recent", "breaking", "2026")
@@ -20,7 +20,7 @@ def run_web_search(query):
         if result.startswith("Backend:"):
             return result
         errors.append(result)
-    return "No useful web results found. Details: gateway.log"
+    return report_tool_failure('web_search', 'No useful web results found')
 
 
 def _try_backend(backend, query):

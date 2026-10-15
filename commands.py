@@ -2,6 +2,7 @@ import agent
 from embedding_commands import run_embedding_command
 from llm_commands import run_llm_command
 from tools import tool_names
+from tools.log import log_exception, report_tool_failure
 
 EXIT_COMMANDS = {"/quit", "/exit", "/q"}
 
@@ -12,6 +13,21 @@ def run(text):
         return {"kind": "empty", "text": ""}
 
     command, body = _split(text)
+    if command == '/cdl_keywords':
+        from tools.seo_registry import run_seo_registry
+        try:
+            return {'kind': 'text', 'text': run_seo_registry(body, 'cdl_keywords')}
+        except Exception as exc:
+            log_exception('cdl_keywords', exc)
+            return {'kind': 'error', 'error': report_tool_failure('cdl_keywords', exc)}
+    if command == '/seo':
+        from seo.service import command as seo_command, service as seo_service
+        try:
+            seo_service.start()
+            return {'kind': 'text', 'text': seo_command(body)}
+        except Exception as exc:
+            log_exception('daily_seo', exc)
+            return {'kind': 'error', 'error': report_tool_failure('daily_seo', exc)}
     if command in EXIT_COMMANDS:
         return {"kind": "exit", "category": "info", "text": "bye"}
     if command == "/tick":

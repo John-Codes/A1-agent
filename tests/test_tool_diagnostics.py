@@ -16,7 +16,7 @@ def test_exception_is_short_on_console_and_complete_in_log(tmp_path, capsys, mon
     except RuntimeError as exc:
         BaseNode()._record_exception(shared, exc)
     assert capsys.readouterr().out == ""
-    assert shared["last_error"] == "BaseNode: all LLM routes failed. Details: gateway.log"
+    assert shared["last_error"] == f"Tool BaseNode failed: all LLM routes failed. Check log for more info @ {path}"
     saved = path.read_text()
     assert "Traceback" in saved and "details " * 200 in saved
     assert "secret-test-key-value" not in saved
@@ -28,8 +28,9 @@ def test_tool_failure_does_not_expose_traceback(tmp_path, capsys, monkeypatch):
     def fail(body):
         raise RuntimeError('AgentMail 403: {"message":"Forbidden"}')
     result = dispatcher._safe_tool("agentmail", fail, "")
-    assert result == "agentmail: access denied; check the API key or permissions. Details: gateway.log"
-    assert capsys.readouterr().out == ""
+    assert "Tool agentmail failed: access denied" in result
+    assert str(tmp_path / "gateway.log") in result
+    assert capsys.readouterr().out.strip() == result
     assert "Traceback" in (tmp_path / "gateway.log").read_text()
 
 
@@ -49,4 +50,39 @@ def test_nested_tool_tag_removed_from_search():
 
 
 def test_empty_timeout_has_a_useful_short_message():
-    assert log.brief_error("browser_use", TimeoutError()) == "browser_use: request timed out. Details: gateway.log"
+    assert log.brief_error("browser_use", TimeoutError()) == f"Tool browser_use failed: request timed out. Check log for more info @ {log.LOG_PATH.resolve()}"
+
+
+def test_model_failure_prints_even_when_fallback_succeeds(tmp_path, monkeypatch, capsys):
+    import llm_client
+    monkeypatch.setattr(log, 'LOG_PATH', tmp_path / 'custom.log')
+    monkeypatch.setattr(llm_client, 'active_routes', lambda shared: [
+        {'provider': 'openrouter', 'model': 'failed-model', 'label': 'default'},
+        {'provider': 'ollama', 'model': 'working-model', 'label': 'fallback_1'}])
+    responses = iter([
+        {'ok': False, 'error': {'type': 'TimeoutError', 'message': 'Exceeded 120s'}},
+        {'ok': True, 'text': 'done', 'provider': 'ollama', 'model': 'working-model'}])
+    monkeypatch.setattr(llm_client, '_try_route', lambda *args: next(responses))
+    assert llm_client.complete_prompt('test', {})['ok']
+    out = capsys.readouterr().out
+    assert 'MODEL FAILED | openrouter/failed-model' in out
+    assert 'Exceeded 120s' in out
+    assert str(tmp_path / 'custom.log') in out
+    assert 'working-model' not in out
+
+
+def test_structured_tool_failure_prints_log_path(tmp_path, monkeypatch, capsys):
+    monkeypatch.setattr(log, 'LOG_PATH', tmp_path / 'custom.log')
+    result = dispatcher._logged_result('article_save', {'ok': False, 'error': 'rejected'})
+    assert 'Tool article_save failed' in result
+    assert str(tmp_path / 'custom.log') in capsys.readouterr().out
+
+
+def test_unknown_tool_prints_and_preserves_exception(tmp_path, monkeypatch, capsys):
+    import pytest
+    from store import store
+    monkeypatch.setitem(store, 'mode', 'execute')
+    monkeypatch.setattr(log, 'LOG_PATH', tmp_path / 'custom.log')
+    with pytest.raises(ValueError, match='Unknown tool'):
+        dispatcher.dispatch_tool_call({'name': 'missing_tool', 'body': ''})
+    assert 'Tool missing_tool failed' in capsys.readouterr().out

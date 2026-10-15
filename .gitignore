@@ -28,3 +28,9 @@ context/LIFE_LOG.xml
 .a1-heartbeat.json
 .a1-heartbeat.tmp
 .a1-heartbeat.lock
+.a1-seo.json
+.a1-seo.tmp
+.a1-seo.lock
+context/*.lock
+context/*.tmp
+docs/seo/drafts/

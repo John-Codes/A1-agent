@@ -9,7 +9,7 @@ from rag_sync import run_rag_sync
 from tools.agentmail import run_agentmail
 from tools.browser_use_tool import run_browser_use
 from tools.chat_history import run_chat_history_api
-from tools.log import brief_error, log_exception, log_tool_event
+from tools.log import brief_error, log_exception, log_tool_event, report_tool_failure
 from tools.life_idea_log import run_life_idea_log
 from tools.llm_route_config import run_llm_route_config
 from tools.shell import run_shell
@@ -18,6 +18,7 @@ from tools.trello_clone_agent_friendly_xml import run_trello_clone_agent_friendl
 from tools.web import run_web_search
 from tools.seo_registry import run_seo_registry
 from seo_mail import poll as poll_seo_mail
+from seo.service import command as run_daily_seo
 
 TOOL_RE = re.compile(
     r"<tool\s+name=[\"'](?P<name>[^\"']+)[\"']\s*>(?P<body>.*?)</tool>",
@@ -25,6 +26,7 @@ TOOL_RE = re.compile(
 )
 
 TOOL_HANDLERS = {
+    "daily_seo": run_daily_seo,
     "project_read": read_project_file,
     "memory_store": memory_store,
     "memory_search": memory_search,
@@ -66,6 +68,15 @@ def tool_names():
 
 
 def dispatch_tool_call(call):
+    try:
+        return _dispatch_tool_call(call)
+    except Exception as exc:
+        log_exception(call['name'], exc)
+        report_tool_failure(call['name'], exc)
+        raise
+
+
+def _dispatch_tool_call(call):
     from task_runtime.policy import enforce
     name = call["name"]
     body = call["body"]
@@ -99,11 +110,11 @@ def _safe_tool(name, func, body):
         return _logged_result(name, func(body))
     except Exception as exc:
         log_exception(name, exc)
-        return brief_error(name, exc)
+        return report_tool_failure(name, exc)
 
 
 def _logged_result(name, result):
     log_tool_event(name, "done", result)
-    if re.search(r'<ok>\s*false\s*</ok>|"ok"\s*:\s*false', str(result)):
-        return brief_error(name, "service unavailable" if "connection_error" in str(result) else "operation failed")
+    if (isinstance(result, dict) and (result.get('ok') is False or result.get('success') is False)) or re.search(r'<ok>\s*false\s*</ok>|"(?:ok|success)"\s*:\s*false', str(result)):
+        return report_tool_failure(name, "service unavailable" if "connection_error" in str(result) else "operation failed")
     return result

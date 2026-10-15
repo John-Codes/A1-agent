@@ -49,4 +49,17 @@ def brief_error(name, detail):
         reason = "browser task did not complete"
     else:
         reason = " ".join((str(detail).splitlines() or ["operation failed"])[0].split())[:160] or "operation failed"
-    return redact(f"{name}: {reason}. Details: gateway.log")
+    return redact(f"Tool {name} failed: {reason}. Check log for more info @ {LOG_PATH.resolve()}")
+
+
+def report_model_failure(provider, model, error):
+    reason = error.get('message', 'No response') if isinstance(error, dict) else str(error)
+    reason = ' '.join(reason.split())[:200] or type(error).__name__
+    print(redact(f"MODEL FAILED | {provider}/{model}: {reason}. "
+                 f"Check log for more info @ {LOG_PATH.resolve()}"), flush=True)
+
+
+def report_tool_failure(name, detail):
+    message = brief_error(name, detail)
+    print(message, flush=True)
+    return message
