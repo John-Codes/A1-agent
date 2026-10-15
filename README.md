@@ -109,8 +109,20 @@ redacted. Use `/log` or `tail -n 100 gateway.log` to inspect details.
 
 ## Daily SEO inside A1
 
-This workflow prepares content for **CDLTestReady**. Automatic posting and
-review email are not connected yet; saved drafts are not published articles.
+This workflow prepares content for **CDLTestReady**. The `cdl_articles` tool
+can submit drafts and publish authorized content through the article API.
+The daily drafting loop does not automatically publish or email its drafts.
+
+Configure `CDL_ARTICLE_API_URL`, `CDL_ARTICLE_WORKSPACE`, and
+`CDL_ARTICLE_ADMIN_TOKEN` in `.env`, then restart A1. Run `/cdl_articles {}`
+to read the API's current instructions. It supports validate, create, get,
+list, update, publish, and delete. Content stays in Markdown; author defaults
+to Sergio and creation/update timestamps come from the API.
+`/cdl_articles {"action":"publish","slug":"reviewed-article-en"}` publishes
+the saved article to the API. The existing website job syncs published content
+on its deployment schedule; API success does not mean the website is live yet.
+Model tool mutations require execute mode; instructions/list/get are read-only.
+Direct `/cdl_articles` console commands are explicit user actions in either mode. See `lib/features/cdl_articles/README.md` for local testing.
 
 Startup displays the available SEO commands and parameters. `/seo help` shows
 them again. Author defaults to Sergio; change it with `/seo author <name>` or

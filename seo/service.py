@@ -18,7 +18,8 @@ STATE = ROOT / '.a1-seo.json'
 OUTPUT = ROOT / 'docs/seo/drafts'
 FIELDS = ('id', 'state', 'topic', 'english', 'spanish', 'priority', 'status')
 HELP = '''CDLTestReady daily SEO — bilingual Markdown drafts
-Destination: CDLTestReady. Auto-posting and review email are not connected yet.
+Destination: CDLTestReady. Publishing tool: /cdl_articles {} for API instructions.
+Daily drafts do not auto-publish; publish through cdl_articles after review.
 /seo title <subject>             What the content is about
 /seo keywords <phrase, phrase>   Target keywords; blank uses the Markdown registry
 /seo author <name>               Author (default: Sergio)

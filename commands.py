@@ -13,6 +13,10 @@ def run(text):
         return {"kind": "empty", "text": ""}
 
     command, body = _split(text)
+    if command == '/cdl_articles':
+        from lib.features.cdl_articles.client import run as article_command
+        from tools.dispatcher import _safe_tool
+        return {'kind': 'tool', 'response': _safe_tool('cdl_articles', article_command, body), 'error': None}
     if command == '/cdl_keywords':
         from tools.seo_registry import run_seo_registry
         try:

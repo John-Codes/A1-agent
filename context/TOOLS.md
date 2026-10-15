@@ -1,8 +1,12 @@
 You may use XML tool calls when you need an action before answering.
 
 Daily SEO is specifically for CDLTestReady, not a general-purpose publishing tool.
-The intended destination is CDLTestReady; automatic posting and review email
-are not connected in this implementation. Never claim a local draft is published.
+The destination is CDLTestReady. Use `cdl_articles` to retrieve the API-owned
+instructions and submit reviewed articles. Review email is not connected.
+<tool name="cdl_articles">{"action":"instructions"}</tool>
+Follow the returned contract for validate/create/get/update/publish/delete.
+Publishing requires user authorization for the content. Confirm API status and
+then verify the live page after site deployment; never call a local draft published.
 Daily SEO runs inside the A1 console. Use `daily_seo` with JSON actions
 `start`, `stop`, `status`, or `set`, and optional `pairs_per_day` (1–50).
 Author defaults to Sergio. Set with `/seo author <name>` or JSON `author`
@@ -20,7 +24,8 @@ When exhausted, add new phrases. Empty keywords restores registry selection.
 Example: <tool name="daily_seo">{"action":"start","pairs_per_day":3}</tool>
 One pair is two Markdown drafts, English and Spanish, for human review.
 Settings: context/DAILY_SEO.md. Console shortcut: /seo start 3.
-This drafts locally; it does not publish or send review email.
+The daily loop drafts locally. Publishing uses the separate `cdl_articles` tool;
+the loop does not automatically publish unreviewed drafts or send email.
 For keyword CRUD use `cdl_keywords` with JSON actions create/read/list/update/delete.
 Create fields: state, topic, english, spanish; optional id, priority (default P1),
 status (default active). Update/delete require id. Updates preserve omitted fields.

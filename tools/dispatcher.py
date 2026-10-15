@@ -1,5 +1,6 @@
 import re
 from task_runtime.read_file import read_project_file
+from lib.features.cdl_articles.client import run as run_cdl_articles
 
 from config import MEMORY_PATH
 from conversation_history import run_conversation_history
@@ -26,6 +27,7 @@ TOOL_RE = re.compile(
 )
 
 TOOL_HANDLERS = {
+    "cdl_articles": run_cdl_articles,
     "daily_seo": run_daily_seo,
     "project_read": read_project_file,
     "memory_store": memory_store,
@@ -80,10 +82,10 @@ def _dispatch_tool_call(call):
     from task_runtime.policy import enforce
     name = call["name"]
     body = call["body"]
-    if name in {"cdl_keywords", "google_seo_rules"}:
+    if name in {"cdl_keywords", "google_seo_rules", "cdl_articles"}:
         import json
-        action = json.loads(body or "{}").get("action", "read")
-        if action not in {"read", "list"}:
+        action = json.loads(body or "{}").get("action", "instructions" if name == 'cdl_articles' else "read")
+        if action not in ({'instructions', 'get', 'list'} if name == 'cdl_articles' else {'read', 'list'}):
             from store import store
             if store.get("mode") == "plan":
                 raise PermissionError(f"Plan mode blocks registry mutation: {name}")
