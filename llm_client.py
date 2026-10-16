@@ -38,7 +38,7 @@ def _try_route(prompt, route, image_data=""):
     queue = ctx.Queue()
     process = ctx.Process(target=_route_worker, args=(prompt, route, image_data, queue))
     process.start()
-    timeout = min(LLM_GENERATION_TIMEOUT, 60) if route["provider"] == "ollama" else LLM_GENERATION_TIMEOUT
+    timeout = min(LLM_GENERATION_TIMEOUT, 300) if route["provider"] == "ollama" else LLM_GENERATION_TIMEOUT
     deadline = monotonic() + timeout
     try:
         # Drain the queue before joining: a large article can fill the pipe,

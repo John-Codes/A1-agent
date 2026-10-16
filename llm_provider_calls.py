@@ -1,7 +1,7 @@
 import requests
 import json
 
-from config import AONE_MODEL_CONTEXT, LLM_GENERATION_TIMEOUT, OLLAMA_HOST
+from config import AONE_MODEL_CONTEXT, LLM_GENERATION_TIMEOUT, LLM_NUM_CTX, LLM_NUM_PREDICT, OLLAMA_HOST
 from llm_http_providers import call_groq, call_nvidia_nim, call_openrouter
 
 
@@ -31,8 +31,8 @@ def call_ollama_direct(prompt, model, api_base="", image_data=""):
         "stream": True,
         "think": thinking,
         "options": {
-            "num_ctx": min(AONE_MODEL_CONTEXT, 4096),
-            "num_predict": 2048,
+            "num_ctx": min(AONE_MODEL_CONTEXT, LLM_NUM_CTX),
+            "num_predict": LLM_NUM_PREDICT,
         },
     }
     response = requests.post(

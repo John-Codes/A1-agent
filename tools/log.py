@@ -55,11 +55,14 @@ def brief_error(name, detail):
 def report_model_failure(provider, model, error):
     reason = error.get('message', 'No response') if isinstance(error, dict) else str(error)
     reason = ' '.join(reason.split())[:200] or type(error).__name__
-    print(redact(f"MODEL FAILED | {provider}/{model}: {reason}. "
-                 f"Check log for more info @ {LOG_PATH.resolve()}"), flush=True)
+    from features.terminal_output.status import decorate
+    message = redact(f"MODEL FAILED | {provider}/{model}: {reason}. "
+                     f"Check log for more info @ {LOG_PATH.resolve()}")
+    print(decorate(message), flush=True)
 
 
 def report_tool_failure(name, detail):
+    from features.terminal_output.status import decorate
     message = brief_error(name, detail)
-    print(message, flush=True)
+    print(decorate(message), flush=True)
     return message

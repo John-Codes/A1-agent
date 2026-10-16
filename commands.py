@@ -13,6 +13,9 @@ def run(text):
         return {"kind": "empty", "text": ""}
 
     command, body = _split(text)
+    if command == "/markdown":
+        from features.terminal_markdown.command import command as markdown_command
+        return markdown_command(body)
     if command == '/cdl_keywords':
         from tools.seo_registry import run_seo_registry
         try:
@@ -28,6 +31,9 @@ def run(text):
         except Exception as exc:
             log_exception('daily_seo', exc)
             return {'kind': 'error', 'error': report_tool_failure('daily_seo', exc)}
+    if command == '/cdltestready':
+        from seo.service import command as seo_command
+        return seo_command('activate cdltestready')
     if command in EXIT_COMMANDS:
         return {"kind": "exit", "category": "info", "text": "bye"}
     if command == "/tick":
@@ -37,7 +43,7 @@ def run(text):
     if command == "/log":
         return {"kind": "text", "category": "data", "text": agent.log()}
     if command == "/tools":
-        return {"kind": "text", "category": "data", "text": "\n".join(tool_names())}
+        return {"kind": "display", "panel": "tools"}
     if command in {"/llm", "/provider"}:
         return {"kind": "text", "text": run_llm_command(body)}
     if command == "/embedding":
@@ -55,7 +61,7 @@ def run(text):
 
 def _tool(name, body):
     try:
-        return {"kind": "tool", "response": agent.tool(name, body), "error": None}
+        return {"kind": "tool", "name": name, "response": agent.tool(name, body), "error": None}
     except Exception as exc:
         return {"kind": "tool", "response": "", "error": str(exc)}
 

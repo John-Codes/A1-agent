@@ -1,10 +1,10 @@
 # Daily SEO
 
-enabled: false
-content_title: CDL daily SEO
+enabled: true
+content_title: Free CDL Test Prep
 author: Sergio
-keywords:
-pairs_per_day: 5
+keywords: free CDL practice test, CDL test prep free, free CDL study guide, CDL permit practice test free, free CDL exam questions
+pairs_per_day: 3
 timezone: America/Chicago
 
 Each slot creates one English and one Spanish Markdown draft for human review.
