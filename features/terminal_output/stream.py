@@ -20,11 +20,18 @@ def live_printer(stream=None):
             out.write("\n")
             state["open"] = False
 
+    def _thinking_line():
+        hint = "thinking … (CPU prefill can take a while before the first token)"
+        out.write(paint(f"· {hint}", "cyan", enabled))
+        out.write("\n")
+        out.flush()
+
     def printer(item):
         kind = item.get("type")
         if kind == "reset":
             _newline()
             state["last"] = None
+            _thinking_line()
             return
         if kind == "tool_status":
             _newline()

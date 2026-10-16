@@ -44,7 +44,10 @@ def _main_line(result, enabled):
 
 def _llm_output(result, enabled):
     if result.get("streamed"):
-        return _line(llm_label(result), "response streamed live above", enabled)
+        label = llm_label(result)
+        if result.get("streamed_chunks"):
+            return "\n" + _line(label, "response streamed live above", enabled)
+        return _line(label, "response streamed live above", enabled)
     thinking, answer = split_thinking(result.get("response", ""))
     lines = []
     if thinking:

@@ -50,6 +50,7 @@ def _result():
         "speaker": "master_llm",
         "response": store.get("pending_response") or "",
         "streamed": bool(store.get("streamed")),
+        "streamed_chunks": len(store.get("pending_stream") or []),
         "error": store.get("last_error"),
         "llm_error": store.get("last_llm_error"),
         "llm_attempts": store.get("last_llm_attempts", []),
