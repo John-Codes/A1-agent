@@ -1,7 +1,11 @@
+import json
 import os
+import queue as _queue
+import threading
 
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.responses import StreamingResponse
 import agent
 from api_models import SearchBody, TextBody, ToolBody
 from commands import run as run_command
@@ -43,6 +47,40 @@ def tools():
 @app.post("/message")
 def message(body: TextBody):
     return agent.message(body.text, body.session_id, image_data=body.image_data)
+
+
+@app.post("/message/stream")
+def message_stream(body: TextBody):
+    """SSE endpoint: thinking/content chunks stream live, then a final result event."""
+    events = _queue.Queue()
+
+    def on_chunk(item):
+        events.put(f"data: {json.dumps(item, default=str)}\n\n")
+
+    def _run():
+        try:
+            result = agent.message(
+                body.text,
+                body.session_id,
+                body.user_message,
+                body.image_data,
+                on_chunk=on_chunk,
+            )
+        except Exception as exc:
+            result = {"response": "", "error": str(exc)}
+        events.put("data: " + json.dumps({"type": "result", **result}, default=str) + "\n\n")
+        events.put(None)
+
+    threading.Thread(target=_run, daemon=True).start()
+
+    def generate():
+        while True:
+            event = events.get()
+            if event is None:
+                break
+            yield event
+
+    return StreamingResponse(generate(), media_type="text/event-stream")
 
 
 @app.post("/generate")

@@ -48,6 +48,7 @@ class LLMNode(BaseNode):
                 return response_text
             tool_results = []
             for call in calls:
+                _notify_tool(prep_res["shared"], call)
                 result = dispatch_tool_call(call)
                 tool_results.append(_format_tool_result(call, result))
             prompt = _prompt_with_tool_results(prompt, response_text, tool_results)
@@ -66,6 +67,16 @@ class LLMNode(BaseNode):
         shared["pending_input"] = None
         shared["pending_image_data"] = None
         return "default"
+
+def _notify_tool(shared, call):
+    callback = shared.get("stream_callback")
+    if not callback:
+        return
+    try:
+        callback({"type": "tool_status", "name": call.get("name", "")})
+    except Exception:
+        pass
+
 
 def _runtime_context():
     today = datetime.now().strftime("%A, %B %d, %Y")

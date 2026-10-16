@@ -4,6 +4,7 @@ from task_runtime.state import PATH
 from store import store
 from features.terminal_output import render
 from features.terminal_output.status import decorate
+from features.terminal_output.stream import live_printer
 from heartbeat.service import service
 from heartbeat.console import read_input
 
@@ -51,7 +52,7 @@ def _loop():
         if store.get("mode") == "plan" and text.strip() and not text.startswith("/"):
             _show(task_command("/plan " + text))
             continue
-        result = run_command(text)
+        result = run_command(text, on_chunk=live_printer())
         if result["kind"] == "exit":
             _print(result)
             break

@@ -7,7 +7,7 @@ from tools.log import log_exception, report_tool_failure
 EXIT_COMMANDS = {"/quit", "/exit", "/q"}
 
 
-def run(text):
+def run(text, on_chunk=None):
     text = (text or "").strip()
     if not text:
         return {"kind": "empty", "text": ""}
@@ -56,7 +56,7 @@ def run(text):
         return _tool(command[1:], body)
     if command.startswith("/"):
         return {"kind": "error", "error": f"Unknown command: {command}"}
-    return {"kind": "message", **agent.message(text)}
+    return {"kind": "message", **agent.message(text, on_chunk=on_chunk)}
 
 
 def _tool(name, body):
