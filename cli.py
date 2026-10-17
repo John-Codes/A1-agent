@@ -1,8 +1,12 @@
+import os
+
 from commands import run as run_command
 from task_runtime.controller import command as task_command
 from task_runtime.state import PATH
 from store import store
 from features.terminal_output import render
+from features.terminal_output.status import decorate
+from features.terminal_output.stream import live_printer
 from heartbeat.service import service
 from heartbeat.console import read_input
 
@@ -19,40 +23,38 @@ def main():
 
 
 def _loop():
-    print("Personal AI Gateway")
-    print("Type a message, /life_log <entry>, /history, /tools, /search <query>, /tick, /memory, /log, or /quit.")
-
-    print("Tasks: /plan <goal>, /execute, /status, /resume. Esc stops active task work.")
     from seo.service import HELP
-    print(HELP)
+    from tools import tool_names
+    from features.terminal_output.banner import startup
+    print(startup(tool_names(), HELP))
     if PATH.exists():
         store["mode"] = "plan"
     while True:
         text = _read()
         if text.strip() == '/tick':
-            print(service.request())
+            _show(service.request())
             continue
         if text.split(maxsplit=1)[:1] == ['/heartbeat']:
             action = text.partition(' ')[2].strip()
             if action == 'resume':
-                print(service.resume())
+                _show(service.resume())
             elif action == 'stop':
                 service.stop()
-                print('Heartbeat paused.')
+                _show("Heartbeat paused.")
             else:
-                print(service.status())
+                _show(service.status())
             continue
         task_result = task_command(text.strip())
         if task_result is not None:
             store["mode"] = "plan"
-            print(task_result)
+            _show(task_result)
             if text.strip() == '/status':
-                print(service.status())
+                _show(service.status())
             continue
         if store.get("mode") == "plan" and text.strip() and not text.startswith("/"):
-            print(task_command("/plan " + text))
+            _show(task_command("/plan " + text))
             continue
-        result = run_command(text)
+        result = run_command(text, on_chunk=_stream_printer())
         if result["kind"] == "exit":
             _print(result)
             break
@@ -60,11 +62,23 @@ def _loop():
 
 
 
+def _stream_printer():
+    """Live token display is opt-in; default is the buffered markdown render."""
+    if os.environ.get("A1_STREAM_DISPLAY", "off").lower() in {"on", "true", "1"}:
+        return live_printer()
+    return None
+
+
 def _read():
     try:
         return read_input(service)
     except (EOFError, KeyboardInterrupt):
         return "/quit"
+
+
+def _show(text):
+    if text:
+        print(decorate(text))
 
 
 def _print(result):

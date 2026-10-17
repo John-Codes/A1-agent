@@ -2,6 +2,7 @@ import fcntl
 import time
 from contextlib import contextmanager
 
+from features.terminal_output.status import emit
 from task_runtime.limits import ATTEMPTS, RUN_SECONDS, TASK_SECONDS
 from task_runtime.state import PATH, load, next_task, save, status, validate_plan
 from task_runtime.supervisor import EmergencyStop, supervise
@@ -32,7 +33,7 @@ def command(text):
                 save(state)
                 if body.strip():
                     with keyboard() as fd:
-                        print('PLAN | Building plan. Esc stops immediately.', flush=True)
+                        emit("PLAN", "Building plan. Esc stops immediately.", "cyan")
                         result = supervise('plan', {'goal': body.strip()}, fd)
                     tasks = validate_plan(result)
                     state.update(goal=body.strip(), tasks=tasks)
@@ -65,7 +66,7 @@ def execute(state, fd, resume=False):
             break
         task.update(status='running', attempts=task['attempts'] + 1)
         save(state)
-        print(f"EXECUTE | {task['id']}: {task['title']} | Esc: EMERGENCY STOP", flush=True)
+        emit("EXECUTE", f"{task['id']}: {task['title']} | Esc: EMERGENCY STOP", "cyan")
         try:
             result = supervise('execute', {'goal': state['goal'], 'task': task,
                                'tasks': state['tasks']}, fd,
@@ -83,8 +84,12 @@ def execute(state, fd, resume=False):
         except Exception as exc:
             task.update(status='failed', detail=str(exc))
         save(state)
-        print(f"{task['status'].upper()} | {task['id']}: {task['detail']}", flush=True)
+        emit(task['status'].upper(), f"{task['id']}: {task['detail']}", _tone(task['status']))
     state['mode'] = 'idle'
     save(state)
     if any(t['status'] != 'done' for t in state['tasks']):
-        print(f'PAUSED | Unfinished tasks remain; inspect /status. Attempt limit: {ATTEMPTS}.')
+        emit("PAUSED", f"Unfinished tasks remain; inspect /status. Attempt limit: {ATTEMPTS}.", "yellow")
+
+
+def _tone(status):
+    return {"done": "green", "failed": "red", "blocked": "yellow", "interrupted": "yellow"}.get(status, "cyan")

@@ -18,6 +18,9 @@ OLLAMA_EMBED_URL = os.environ.get(
     OLLAMA_URL.rsplit("/", 1)[0] + "/embed",
 )
 OLLAMA_EMBED_MODEL = os.environ.get("OLLAMA_EMBED_MODEL", "embeddinggemma")
+# Keeps the embedding model resident so callers share one runner instead of
+# respawning it after ollama's 5-minute default keep_alive expiry.
+OLLAMA_KEEP_ALIVE = os.environ.get("OLLAMA_KEEP_ALIVE", "30m")
 DEFAULT_EMBEDDING_PROVIDER = os.environ.get("DEFAULT_EMBEDDING_PROVIDER", "ollama")
 DEFAULT_EMBEDDING_MODEL = os.environ.get("DEFAULT_EMBEDDING_MODEL", OLLAMA_EMBED_MODEL)
 DEFAULT_EMBEDDING_API_BASE = os.environ.get("DEFAULT_EMBEDDING_API_BASE", OLLAMA_HOST)
@@ -36,7 +39,9 @@ DEFAULT_LLM_API_BASE = (
 )
 OLLAMA_MODEL = DEFAULT_LLM_MODEL
 LITELLM_ENABLED = os.environ.get("LITELLM_ENABLED", "true").lower() == "true"
-LLM_GENERATION_TIMEOUT = int(os.environ.get("LLM_GENERATION_TIMEOUT", "120"))
+LLM_GENERATION_TIMEOUT = int(os.environ.get("LLM_GENERATION_TIMEOUT", "300"))
+LLM_NUM_CTX = int(os.environ.get("LLM_NUM_CTX", "32768"))
+LLM_NUM_PREDICT = int(os.environ.get("LLM_NUM_PREDICT", "2048"))
 LLM_HEALTHCHECK_TIMEOUT = int(os.environ.get("LLM_HEALTHCHECK_TIMEOUT", "8"))
 AONE_MODEL_CONTEXT = int(os.environ.get("AONE_MODEL_CONTEXT", "32768"))
 REQUEST_TIMEOUT = int(os.environ.get("REQUEST_TIMEOUT", str(LLM_GENERATION_TIMEOUT)))

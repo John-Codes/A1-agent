@@ -1,6 +1,6 @@
 import requests
 
-from config import EMBEDDING_TIMEOUT
+from config import EMBEDDING_TIMEOUT, OLLAMA_KEEP_ALIVE
 from embedding_errors import embedding_error, embedding_ok
 from embedding_runtime import default_embedding_route, remember_embedding_route
 from store import store
@@ -32,7 +32,7 @@ def _try_default_embedding(text, route):
 def _call_ollama_embed(text, route):
     if route["provider"] != "ollama":
         raise ValueError("Only Ollama embeddings are enabled by default.")
-    payload = {"model": route["model"], "input": text}
+    payload = {"model": route["model"], "input": text, "keep_alive": OLLAMA_KEEP_ALIVE}
     url = f"{route['api_base'].rstrip('/')}/api/embed"
     response = requests.post(url, json=payload, timeout=EMBEDDING_TIMEOUT)
     response.raise_for_status()

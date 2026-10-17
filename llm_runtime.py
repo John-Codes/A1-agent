@@ -11,6 +11,13 @@ def all_routes():
     return _dedupe([default_route()] + fallback_routes())
 
 
+def skipped_fallback_routes(shared):
+    """Return fallbacks filtered out by heartbeat model reservation."""
+    from heartbeat.settings import MODEL, PROVIDER
+    reserved_set = {(PROVIDER, MODEL)}
+    return [r for r in fallback_routes() if (r["provider"], r["model"]) in reserved_set]
+
+
 def active_routes(shared):
     active = _active_route(shared)
     from heartbeat.settings import MODEL, PROVIDER
@@ -62,6 +69,10 @@ def status_text(shared):
         f"default: {DEFAULT_LLM_PROVIDER}/{DEFAULT_LLM_MODEL}",
     ]
     lines.append(f"heartbeat (reserved, excluded from main fallbacks): {PROVIDER}/{MODEL}")
+    skipped = skipped_fallback_routes(shared)
+    if skipped:
+        for r in skipped:
+            lines.append(f"skipped (heartbeat reserved): {r['label']} {r['provider']}/{r['model']}")
     for item in fallback_routes():
         lines.append(f"{item['label']}: {item['provider']}/{item['model']}")
     lines.extend([f"active_provider: {provider}", f"active_model: {model}"])

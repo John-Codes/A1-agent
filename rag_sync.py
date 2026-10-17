@@ -5,7 +5,10 @@ from threading import Thread
 from config import CONTEXT_DIR
 from memory.lance_store import search_records, store_record
 
-STALE_SECONDS = 300
+# 2026-10-16: 300s caused near-constant full-corpus + Trello re-embedding on
+# this CPU-only box (pegged a core after almost every message). 1800s matches
+# the heartbeat interval; mtime changes still trigger an immediate sync.
+STALE_SECONDS = 1800
 _last_sync, _last_context_mtime, _running = 0, 0, False
 def sync_if_stale(background=True):
     global _last_sync, _last_context_mtime, _running

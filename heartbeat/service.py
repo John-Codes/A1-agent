@@ -67,9 +67,11 @@ class Heartbeat:
                 from seo_mail import poll
                 mail_result = poll()
                 if mail_result.get('processed'):
-                    print(f"SEO MAIL | processed {mail_result['processed']} reviewer message(s)", flush=True)
+                    from features.terminal_output.status import emit
+                    emit("SEO MAIL", f"processed {mail_result['processed']} reviewer message(s)", "green")
             except Exception as exc:
-                print(f"SEO MAIL | error: {exc}", flush=True)
+                from features.terminal_output.status import emit
+                emit("SEO MAIL", f"error: {exc}", "red")
             if self.paused:
                 return {'response': 'Heartbeat paused. Use /heartbeat resume.', 'error': None}
             with settings.PATH.with_suffix('.lock').open('w') as lock:
@@ -80,17 +82,18 @@ class Heartbeat:
                 if scheduled and not report.due():
                     return {'response': 'Heartbeat not due yet.', 'error': None}
                 self.last = report.record('running')
-                print(f'HEARTBEAT | Checking with {settings.PROVIDER}/{settings.MODEL}', flush=True)
+                from features.terminal_output.status import emit
+                emit("HEARTBEAT", f"Checking with {settings.PROVIDER}/{settings.MODEL}", "blue")
                 try:
                     result = supervise('heartbeat', {}, None, timeout=settings.TIMEOUT,
                                        target=run, cancel=self.cancel)
                     self.last = report.record('done', result.get('response', ''))
-                    print(f"HEARTBEAT | {self.last['detail']}", flush=True)
+                    emit("HEARTBEAT", self.last['detail'], "blue")
                     return result
                 except (Exception, EmergencyStop) as exc:
                     stopped = isinstance(exc, EmergencyStop)
                     self.last = report.record('stopped' if stopped else 'error', str(exc))
-                    print(f"HEARTBEAT | {self.last['status']}: {self.last['detail']}", flush=True)
+                    emit("HEARTBEAT", f"{self.last['status']}: {self.last['detail']}", "yellow" if stopped else "red")
                     return {'response': '', 'error': self.last['detail']}
         finally:
             self.busy.release()

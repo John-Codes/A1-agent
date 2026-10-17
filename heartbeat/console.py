@@ -3,6 +3,7 @@ import sys
 import termios
 
 from features.terminal_output import input_prompt
+from features.terminal_output.status import status_line
 from task_runtime.terminal import keyboard
 
 
@@ -21,7 +22,8 @@ def read_input(service):
             if char == b'\x1b':
                 termios.tcflush(fd, termios.TCIFLUSH)
                 service.stop()
-                print('\nSTOPPED | Heartbeat paused. /heartbeat resume to restart.')
+                print()
+                print(status_line("STOPPED", "Heartbeat paused. /heartbeat resume to restart.", "red"))
                 return ''
             if char in (b'\r', b'\n'):
                 print()

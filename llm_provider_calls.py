@@ -1,13 +1,13 @@
 import requests
 import json
 
-from config import AONE_MODEL_CONTEXT, LLM_GENERATION_TIMEOUT, OLLAMA_HOST
+from config import AONE_MODEL_CONTEXT, LLM_GENERATION_TIMEOUT, LLM_NUM_CTX, LLM_NUM_PREDICT, OLLAMA_HOST
 from llm_http_providers import call_groq, call_nvidia_nim, call_openrouter
 
 
-def call_provider(prompt, provider, model, api_base, image_data=""):
+def call_provider(prompt, provider, model, api_base, image_data="", emit=None):
     if provider == "ollama":
-        return call_ollama_direct(prompt, model, api_base, image_data)
+        return stream_ollama_chat(prompt, model, api_base, image_data, emit)
     if image_data:
         raise ValueError(f"Images require an Ollama route, not {provider}.")
     if provider == "groq":
@@ -19,7 +19,8 @@ def call_provider(prompt, provider, model, api_base, image_data=""):
     return _call_litellm(prompt, provider, model, api_base)
 
 
-def call_ollama_direct(prompt, model, api_base="", image_data=""):
+def stream_ollama_chat(prompt, model, api_base="", image_data="", emit=None):
+    """POST /api/chat with stream=True; calls emit({"kind", "text"}) per chunk."""
     base = (api_base or OLLAMA_HOST).rstrip("/")
     message = {"role": "user", "content": prompt}
     if image_data:
@@ -31,8 +32,8 @@ def call_ollama_direct(prompt, model, api_base="", image_data=""):
         "stream": True,
         "think": thinking,
         "options": {
-            "num_ctx": min(AONE_MODEL_CONTEXT, 4096),
-            "num_predict": 2048,
+            "num_ctx": min(AONE_MODEL_CONTEXT, LLM_NUM_CTX),
+            "num_predict": LLM_NUM_PREDICT,
         },
     }
     response = requests.post(
@@ -42,24 +43,35 @@ def call_ollama_direct(prompt, model, api_base="", image_data=""):
         stream=True,
     )
     response.raise_for_status()
-    return _read_ollama_stream(response, thinking)
+    return _consume_ollama_stream(response, thinking, emit)
 
 
-def _read_ollama_stream(response, thinking):
-    thoughts, content = [], []
+def _consume_ollama_stream(response, thinking, emit=None):
+    parts = {"thinking": [], "content": []}
     for raw in response.iter_lines(decode_unicode=True):
         if not raw:
             continue
         item = json.loads(raw)
         message = item.get("message") or {}
-        if message.get("thinking"):
-            thoughts.append(message["thinking"])
-        if message.get("content"):
-            content.append(message["content"])
-    text = "".join(content).strip()
-    if thinking and thoughts:
-        text = f"<think>{''.join(thoughts).strip()}</think>\n{text}"
+        for kind in ("thinking", "content"):
+            piece = message.get(kind)
+            if not piece:
+                continue
+            parts[kind].append(piece)
+            if emit:
+                emit({"kind": kind, "text": piece})
+    text = "".join(parts["content"]).strip()
+    if thinking and parts["thinking"]:
+        text = f"<think>{''.join(parts['thinking']).strip()}</think>\n{text}"
     return text
+
+
+def _read_ollama_stream(response, thinking):
+    return _consume_ollama_stream(response, thinking)
+
+
+def call_ollama_direct(prompt, model, api_base="", image_data=""):
+    return stream_ollama_chat(prompt, model, api_base, image_data)
 
 
 def _call_litellm(prompt, provider, model, api_base):

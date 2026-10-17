@@ -107,6 +107,17 @@ Full tool results, provider failures, browser
 diagnostics, and tracebacks are saved to `gateway.log`, with configured secrets
 redacted. Use `/log` or `tail -n 100 gateway.log` to inspect details.
 
+## Terminal readability
+
+Startup shows commands, tools, and SEO help in a color panel on a TTY.
+Model responses render Markdown in color terminals, including tmux: headings,
+bold text, lists, tables, quotes, and syntax-highlighted code. Thinking remains
+separately labeled and dimmed; tool output and errors keep their existing labels.
+Use `/markdown demo` to preview, `/markdown off` for the previous display, or
+`/markdown on` to restore it. Set `A1_MARKDOWN=0` before starting for a persistent
+opt-out. `NO_COLOR` and redirected output remain plain. Raw saved responses and
+API responses are unchanged. Install updated requirements before restarting A1.
+
 ## Daily SEO inside A1
 
 This workflow prepares content for **CDLTestReady**. Automatic posting and

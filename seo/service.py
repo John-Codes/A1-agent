@@ -22,7 +22,8 @@ Destination: CDLTestReady. Auto-posting and review email are not connected yet.
 /seo title <subject>             What the content is about
 /seo keywords <phrase, phrase>   Target keywords; blank uses the Markdown registry
 /seo author <name>               Author (default: Sergio)
-/seo start [pairs/day]           Enable daily drafting (default: saved quota)
+/seo start [pairs/day]           Enable daily drafting (default: 5 pairs/day)
+/seo activate cdltestready      Enable CDLTestReady with default settings
 /seo set <pairs/day>             Change the daily quota
 /seo status                     Show settings, current article, and progress
 /seo stop                       Pause drafting
@@ -104,8 +105,8 @@ def command(body):
             argument = data.get('author', '')
     else:
         action, _, argument = (body.strip() or 'status').partition(' ')
-    if action not in {'start', 'stop', 'status', 'set', 'title', 'keywords', 'author'}:
-        raise ValueError('Use /seo start [pairs/day], stop, status, set <pairs/day>, title <topic>, keywords <phrases>, or author <name>.')
+    if action not in {'start', 'stop', 'status', 'set', 'title', 'keywords', 'author', 'activate'}:
+        raise ValueError('Use /seo start [pairs/day], stop, status, set <pairs/day>, title <topic>, keywords <phrases>, author <name>, or activate cdltestready.')
     if action == 'start' and emergency.active():
         raise ValueError('Emergency stop is active; inspect and clear it before starting SEO.')
     with CONFIG.with_suffix('.lock').open('w') as lock:
@@ -137,6 +138,16 @@ def command(body):
             raise ValueError('Use /seo set <pairs/day>.')
         if action in {'start', 'stop'}:
             values['enabled'] = 'true' if action == 'start' else 'false'
+        if action == 'activate':
+            # Activate CDLTestReady defaults; assumes CONFIG already has the keys
+            # (from DAILY_SEO.md or a prior /seo start command).
+            values['enabled'] = 'true'
+            service.wake.set()
+            show_title(f"A1 | {values['content_title']} | enabled")
+            return (f"SEO enabled | {values['content_title']} | {values['pairs_per_day']} EN+ES pairs/day | {values['timezone']}\n"
+                    f"Keywords: {values['keywords'] or '(active Markdown keyword registry)'}\n"
+                    f"Author: {values['author']}\n"
+                    f"Runner: active")
         if action != 'status':
             text = CONFIG.read_text()
             for key, value in values.items():
@@ -200,7 +211,8 @@ class DailySEO:
                 from tools.log import log_exception
                 log_exception('daily_seo', exc)
                 self.error = str(exc)
-                print(f'SEO | Runner error: {exc}', flush=True)
+                from features.terminal_output.status import emit
+                emit("SEO", f"Runner error: {exc}", "red")
             self.wake.wait(15)
 
     def tick(self):
@@ -248,7 +260,8 @@ class DailySEO:
             slots[slot] = {'keyword': row['id'], 'status': 'running', 'path': str(folder)}
             state['used'].append(row['id'])
             state['status'] = f"Drafting {today} slot {slot}: {row['id']}"
-            print(f"SEO | Starting {slot}/{config['pairs_per_day']}: {row['english']} | Author: {config['author']}", flush=True)
+            from features.terminal_output.status import emit
+            emit("SEO", f"Starting {slot}/{config['pairs_per_day']}: {row['english']} | Author: {config['author']}", "green")
             state['content_title'] = config['content_title']
             state['article_title'] = row['english'].split(';')[0]
             show_title(f"A1 | {config['content_title']} | {slot}/{config['pairs_per_day']} | {state['article_title']}")
@@ -278,7 +291,7 @@ class DailySEO:
                 state['status'] = f'Slot {slot} failed: {exc}. See {STATE}.'
                 show_title(f"A1 | {config['content_title']} | failed: {row['topic']}")
             save(state)
-            print('SEO | ' + state['status'], flush=True)
+            emit("SEO", state['status'], "red" if "failed" in state['status'].lower() else "green")
 
 
 service = DailySEO()
