@@ -18,6 +18,9 @@ OLLAMA_EMBED_URL = os.environ.get(
     OLLAMA_URL.rsplit("/", 1)[0] + "/embed",
 )
 OLLAMA_EMBED_MODEL = os.environ.get("OLLAMA_EMBED_MODEL", "embeddinggemma")
+# Keeps the embedding model resident so callers share one runner instead of
+# respawning it after ollama's 5-minute default keep_alive expiry.
+OLLAMA_KEEP_ALIVE = os.environ.get("OLLAMA_KEEP_ALIVE", "30m")
 DEFAULT_EMBEDDING_PROVIDER = os.environ.get("DEFAULT_EMBEDDING_PROVIDER", "ollama")
 DEFAULT_EMBEDDING_MODEL = os.environ.get("DEFAULT_EMBEDDING_MODEL", OLLAMA_EMBED_MODEL)
 DEFAULT_EMBEDDING_API_BASE = os.environ.get("DEFAULT_EMBEDDING_API_BASE", OLLAMA_HOST)

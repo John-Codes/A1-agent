@@ -82,7 +82,8 @@ def status_line(label, text, tone=None, enabled=None):
         return f"{label} | {body}"
     color_key = tone or TONES.get(label, "BLUE")
     color_code = BRIGHT.get(color_key, NORMAL.get(color_key, ""))
-    return f"{paint(label + ' |', color_key, True)} {highlight(body, True)}"
+    # TONES/_STATUS_COLOR values are uppercase; paint() expects lowercase.
+    return f"{paint(label + ' |', color_key.lower(), True)} {highlight(body, True)}"
 
 
 def decorate(text, enabled=None):
@@ -126,5 +127,5 @@ def _decorate_line(line):
 
 def _paint_token(token, style):
     if style is None:
-        return paint(token, _STATUS_COLOR.get(token.lower(), "BLUE"), True)
+        return paint(token, _STATUS_COLOR.get(token.lower(), "BLUE").lower(), True)
     return f"{style}{token}{RESET}"

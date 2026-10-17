@@ -78,6 +78,15 @@ def test_stream_relay_survives_broken_callback(monkeypatch):
     assert shared["pending_stream"] == [{"kind": "content", "text": "still works"}]
 
 
+def test_cli_stream_display_toggle(monkeypatch):
+    import cli
+
+    monkeypatch.setenv("A1_STREAM_DISPLAY", "off")
+    assert cli._stream_printer() is None
+    monkeypatch.setenv("A1_STREAM_DISPLAY", "on")
+    assert callable(cli._stream_printer())
+
+
 def test_message_stream_endpoint_emits_sse(monkeypatch):
     def fake_message(text, session_id="", user_message="", image_data="", on_chunk=None):
         if on_chunk:

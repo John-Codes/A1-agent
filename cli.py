@@ -1,3 +1,5 @@
+import os
+
 from commands import run as run_command
 from task_runtime.controller import command as task_command
 from task_runtime.state import PATH
@@ -52,12 +54,19 @@ def _loop():
         if store.get("mode") == "plan" and text.strip() and not text.startswith("/"):
             _show(task_command("/plan " + text))
             continue
-        result = run_command(text, on_chunk=live_printer())
+        result = run_command(text, on_chunk=_stream_printer())
         if result["kind"] == "exit":
             _print(result)
             break
         _print(result)
 
+
+
+def _stream_printer():
+    """Live token display is opt-in; default is the buffered markdown render."""
+    if os.environ.get("A1_STREAM_DISPLAY", "off").lower() in {"on", "true", "1"}:
+        return live_printer()
+    return None
 
 
 def _read():
