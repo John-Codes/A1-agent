@@ -1,0 +1,2 @@
+[console_scripts]
+a1-chat-history = a1_chat_history.cli:main

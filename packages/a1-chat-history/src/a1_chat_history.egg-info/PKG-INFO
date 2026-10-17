@@ -1,0 +1,13 @@
+Metadata-Version: 2.4
+Name: a1-chat-history
+Version: 0.1.0
+Summary: Drop-in conversation history API for A1 agents: FastAPI service with optional local MongoDB (pymongo) or zero-dependency JSON storage.
+Requires-Python: >=3.11
+Requires-Dist: fastapi>=0.111
+Requires-Dist: uvicorn>=0.30
+Requires-Dist: pydantic>=2.7
+Provides-Extra: mongo
+Requires-Dist: pymongo>=4.6; extra == "mongo"
+Provides-Extra: dev
+Requires-Dist: httpx>=0.27; extra == "dev"
+Requires-Dist: pytest>=8; extra == "dev"

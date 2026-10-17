@@ -196,6 +196,20 @@ thin HTTP client, the LLM-callable wrapper, and the auto-save code. Set
 `CHAT_HISTORY_WORKSPACE_ID=aone-local`, and optionally
 `CHAT_HISTORY_API_TOKEN` when the API requires `X-Tool-Token`.
 
+### Installing the history API (bundled)
+
+The history API ships with A1 as a pip package — no separate checkout needed:
+
+```bash
+pip install ./packages/a1-chat-history[mongo]
+a1-chat-history --port 8004
+```
+
+Storage resolves automatically: MongoDB when reachable (pymongo, optional
+`--auto-mongo` starts a dedicated local `mongod`), otherwise a zero-dependency
+JSON file at `~/.local/share/a1-chat-history/history.json`. See
+`packages/a1-chat-history/README.md` for all flags and env vars.
+
 ## Project Rule
 
 Code files stay under 100 lines. Keep changes small, direct, and easy to scan.
