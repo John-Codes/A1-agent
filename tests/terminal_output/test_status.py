@@ -14,3 +14,12 @@ def test_highlight_paints_status_tokens_without_crashing():
 
     out = highlight("status: done and failed today", True)
     assert "done" in out and "failed" in out
+
+
+def test_decorate_restyles_known_status_prefixes():
+    from features.terminal_output.status import decorate
+
+    out = decorate("MODEL FAILED | openrouter blew up", enabled=True)
+    assert "MODEL FAILED" in out and "openrouter blew up" in out
+    plain = decorate("just a normal sentence | with a pipe", enabled=True)
+    assert "just a normal sentence" in plain

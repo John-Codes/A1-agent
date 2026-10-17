@@ -47,6 +47,9 @@ _PATH = re.compile(r"(?<![\w/])(?:/[\w.~-]+){2,}")
 _COMMAND = re.compile(r"(?<![\w/])/[a-z][a-z0-9_-]*")
 _NUMBER = re.compile(r"\b\d+\b")
 _STATUS = re.compile(r"\b(done|failed|error|stopped|paused|blocked|interrupted|running|pending|scheduled)\b", re.I)
+# "LABEL | body" prefix used by status emissions; the label must be in TONES
+# for the line to be restyled (checked in _decorate_line).
+_PREFIX = re.compile(r"^(?P<label>[A-Z][A-Z ]{1,30}?)\s*\|\s*(?P<body>.*)$")
 
 _RULES = (
     (_URL, "\033[1;94m"),
