@@ -23,8 +23,10 @@ That's it. Storage resolves automatically:
 | `--storage json` | JSON file only (zero dependencies) |
 | `--storage mongo` | Require MongoDB; start one automatically with `--auto-mongo` if a `mongod` binary exists |
 
-The default MongoDB backend uses `pymongo` (installed by the `[mongo]` extra)
-against `mongodb://127.0.0.1:27017`, database `a1_chat_history`. With
+The MongoDB backend runs on your package's `mongodb-crud` multi-tenant helpers
+(installed by the `[mongo]` extra, which also pulls `motor` and `pymongo`) and
+scopes every document by `workspace_id`. It connects to
+`mongodb://127.0.0.1:27017`, database `a1_chat_history`. With
 `--auto-mongo`, the service launches a dedicated local `mongod`
 (`--dbpath ~/.local/share/a1-chat-history/mongo`) and keeps it out of your way.
 

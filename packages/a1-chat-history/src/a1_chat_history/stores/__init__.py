@@ -1,5 +1,3 @@
-import sys
-
 from ..mongo_runtime import mongo_reachable, start_mongod
 from ..settings import Settings
 from .json_store import JsonStore
@@ -30,12 +28,12 @@ def get_store(settings: Settings, log=print):
 
 def _mongo_store(settings: Settings):
     try:
-        from .mongo_store import MongoStore
+        from .mongo_crud_store import MongoCRUDStore
     except ImportError:
-        return None, "pymongo not installed (pip install a1-chat-history[mongo])"
+        return None, "mongodb-crud not installed (pip install a1-chat-history[mongo])"
     if not mongo_reachable(settings.mongo_uri, settings.mongo_timeout_ms):
         return None, f"no server at {settings.mongo_uri}"
     try:
-        return MongoStore(settings.mongo_uri, settings.mongo_db, settings.mongo_timeout_ms), None
+        return MongoCRUDStore(settings.mongo_uri, settings.mongo_db, settings.mongo_timeout_ms), None
     except Exception as exc:
         return None, str(exc)
